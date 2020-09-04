@@ -1,0 +1,23 @@
+{
+	"languages": [
+		{
+			"languageId": "dart"
+		}
+	],
+	"env": {
+		// The path to the root of your Dart SDK.
+		// For instance, /usr/lib/dart on Ubuntu.
+		// "DART_SDK": "..."
+	},
+	"initializationOptions": {
+		"onlyAnalyzeProjectsWithOpenFiles": false,
+		"suggestFromUnimportedLibraries": true,
+		"closingLabels": false,
+		"outline": false,
+		"flutterOutline": false
+	},
+	"settings": {
+		"dart.enableSdkFormatter": true,
+		"dart.lineLength": 80
+	}
+}
