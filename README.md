@@ -26,6 +26,17 @@ This language server operates on views with the `source.dart` base scope.
 
 This helper package doesn't install any binaries.
 
+## Server-specific commands
+
+You can run
+
+```
+LSP-Dart: Goto Super
+```
+
+from the command palette to jump to a super class. The relevant command is `lsp_dart_super` in case you want to bind
+it to a keybinding.
+
 ## Quirks
 
 The language server is capable of "signature help", but you have to trigger it manually. Run the command
