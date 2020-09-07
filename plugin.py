@@ -1,87 +1,114 @@
 from LSP.plugin import __version__
 from LSP.plugin import AbstractPlugin
+from LSP.plugin import ClientConfig
 from LSP.plugin import Request
-from LSP.plugin.core.registry import LspTextCommand  # TODO: Move to public API
-from LSP.plugin.core.typing import Any, Tuple
-from LSP.plugin.core.views import text_document_position_params  # TODO: Move to public API
-import os
+from LSP.plugin import WorkspaceFolder
+from LSP.plugin.core.typing import Any, List, Optional, Tuple
+
+# TODO: Move to public API
+from LSP.plugin.core.registry import LspTextCommand
+from LSP.plugin.core.views import location_to_encoded_filename
+from LSP.plugin.core.views import text_document_position_params
+
+from os import environ
+from os.path import dirname
+from os.path import join
+from os.path import realpath
+
 import sublime
 import shutil
 
 
-class DartAnalysisServer(AbstractPlugin):
+def getenv(configuration: ClientConfig, key: str) -> Optional[str]:
+    value = configuration.env.get(key)
+    if value:
+        return realpath(value)
+    value = environ.get(key)
+    if value:
+        return realpath(value)
+    return None
 
+
+def which_realpath(exe: str) -> Optional[str]:
+    path = shutil.which(exe)
+    if path:
+        return realpath(path)
+    return None
+
+
+def flutter_root_to_dart_sdk(flutter_root: str) -> str:
+    return join(flutter_root, "cache", "dart-sdk")
+
+
+class Dart(AbstractPlugin):
     @classmethod
     def name(cls) -> str:
-        return "Dart-Analysis"
+        return "Dart"
 
     @classmethod
-    def configuration(cls) -> Tuple[sublime.Settings, str]:
-        settings, file_name, sdk_path = cls.dart_sdk()
-        command = [cls.dart_exe(sdk_path), cls.server_snapshot(sdk_path)]
-        command.append("--lsp")
-        command.append("--client-id")
-        command.append("Sublime Text LSP")
-        command.append("--client-version")
-        command.append(".".join(map(str, __version__)))
-        settings.set("command", command)
-        return settings, file_name
-
-    @classmethod
-    def dart_sdk(cls) -> Tuple[sublime.Settings, str, str]:
-        # TODO: This entire function is bad
-        sdk_path = ""
-        if "DART_SDK" in os.environ:
-            sdk_path = os.environ["DART_SDK"]
-        settings, file_name = super().configuration()
-        env = settings.get("env")
-        if isinstance(env, dict) and "DART_SDK" in env:
-            sdk_path = env["DART_SDK"]
+    def can_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders: List[WorkspaceFolder],
+        configuration: ClientConfig,
+    ) -> Optional[str]:
+        sdk_path = None  # type: Optional[str]
+        # 1: Try FLUTTER_ROOT
+        flutter_root = getenv(configuration, "FLUTTER_ROOT")
+        if flutter_root:
+            sdk_path = flutter_root_to_dart_sdk(flutter_root)
+        # 2: Try `which flutter`
         if not sdk_path:
-            via_shutil = shutil.which("dart")
-            if via_shutil:
-                sdk_path = os.path.dirname(os.path.dirname(via_shutil))
-            else:
-                platform = sublime.platform()
-                if platform == "linux":
-                    candidate = "/usr/lib/dart"
-                    if os.path.exists(candidate):
-                        sdk_path = candidate
-                # TODO: Implement this
-                elif platform == "windows":
-                    sdk_path = ""
-                else:
-                    sdk_path = ""
-        return settings, file_name, sdk_path
-
-    @classmethod
-    def bindir(cls, sdk_path: str) -> str:
-        return os.path.join(sdk_path, "bin")
+            flutter_bin = which_realpath("flutter")
+            if flutter_bin:
+                flutter_root = dirname(dirname(flutter_bin))
+                sdk_path = flutter_root_to_dart_sdk(flutter_root)
+        # 3: Try DART_SDK
+        if not sdk_path:
+            sdk_path = configuration.env.get("DART_SDK")
+        # 4: Try `which dart`
+        if not sdk_path:
+            dart_bin = which_realpath("dart")
+            if dart_bin:
+                sdk_path = dirname(dirname(dart_bin))
+        # 5: Exhausted all options
+        if not sdk_path:
+            return 'missing "DART_SDK" environment variable'
+        configuration.command = [
+            cls.dart_exe(sdk_path),
+            cls.server_snapshot(sdk_path),
+            "--lsp",
+            "--client-id",
+            "Sublime Text LSP",
+            "--client-version",
+            ".".join(map(str, __version__)),
+        ]
+        return None
 
     @classmethod
     def dart_exe(cls, sdk_path: str) -> str:
-        return os.path.join(cls.bindir(sdk_path), "dart")
+        return join(sdk_path, "bin", "dart")
 
     @classmethod
     def server_snapshot(cls, sdk_path: str) -> str:
-        return os.path.join(
-            cls.bindir(sdk_path), "snapshots", "analysis_server.dart.snapshot")
+        return join(sdk_path, "bin", "snapshots", "analysis_server.dart.snapshot")
 
     # handle custom notifications
 
     def m___analyzerStatus(self, params: Any) -> None:
-
         def run() -> None:
             session = self.weaksession()
-            if session:
-                analyzing = isinstance(params, dict) and params.get("isAnalyzing")
-                status_key = self.name() + "_analyzing";
-                for sv in session.session_views_async():
-                    if sv.view.is_valid():
-                        if analyzing:
-                            sv.view.set_status(status_key, "Analyzing")
-                        else:
-                            sv.view.erase_status(status_key)
+            if not session:
+                return
+            analyzing = isinstance(params, dict) and params.get("isAnalyzing")
+            status_key = self.name() + "_analyzing"
+            for sv in session.session_views_async():
+                if sv.view.is_valid():
+                    if analyzing:
+                        sv.view.set_status(status_key, "Analyzing")
+                    else:
+                        sv.view.erase_status(status_key)
 
         sublime.set_timeout_async(run)
 
@@ -99,17 +126,16 @@ class DartAnalysisServer(AbstractPlugin):
 
 
 class LspDartReanalyzeCommand(LspTextCommand):
-    session_name = DartAnalysisServer.name()
+    session_name = Dart.name()
 
-    def run(self, edit: sublime.Edit) -> None:
+    def run(self, _: sublime.Edit) -> None:
         session = self.session_by_name(self.session_name)
         if not session:
             return
         req = Request("dart/reanalyze")
         session.send_request(
-            req,
-            lambda r: sublime.set_timeout(
-                lambda: self.on_result(r)))
+            req, lambda r: sublime.set_timeout(lambda: self.on_result(r))
+        )
 
     def on_result(self, params: Any) -> None:
         if not self.view.is_valid():
@@ -120,10 +146,10 @@ class LspDartReanalyzeCommand(LspTextCommand):
         window.status_message("Re-analyzed")
 
 
-class LspDartTextDocumentSuper(LspTextCommand):
-    session_name = DartAnalysisServer.name()
+class LspDartSuperCommand(LspTextCommand):
+    session_name = Dart.name()
 
-    def run(self, edit: sublime.Edit) -> None:
+    def run(self, _: sublime.Edit) -> None:
         session = self.session_by_name(self.session_name)
         if not session:
             return
@@ -132,7 +158,11 @@ class LspDartTextDocumentSuper(LspTextCommand):
         session.send_request(req, self.on_result)
 
     def on_result(self, params: Any) -> None:
-        if not isinstance(params, dict):
+        window = self.view.window()
+        if not window:
             return
-        # TODO: Implement me
-
+        if not isinstance(params, dict):
+            return sublime.error_message("No superclass found")
+        window.open_file(
+            location_to_encoded_filename(params), flags=sublime.ENCODED_POSITION
+        )

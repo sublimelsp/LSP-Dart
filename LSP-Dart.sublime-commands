@@ -1,0 +1,20 @@
+[
+    {
+        "caption": "Preferences: LSP-Dart Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/LSP-Dart/LSP-Dart.sublime-settings",
+            "default": "// Settings in here override those in \"LSP-Dart/LSP-Dart.sublime-settings\"\n{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "LSP-Dart: Goto Super",
+        "command": "lsp_dart_super"
+    },
+    // Listed on https://github.com/dart-lang/sdk/blob/master/pkg/analysis_server/tool/lsp_spec/README.md
+    // but doesn't work for some reason
+    // {
+    //     "caption": "LSP-Dart: Reanalyze",
+    //     "command": "lsp_dart_reanalyze"
+    // }
+]
