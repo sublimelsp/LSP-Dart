@@ -5,7 +5,7 @@ This is a helper package that automatically starts the [Dart Analysis Server](ht
 To use this package, you must have:
 - The [LSP](https://packagecontrol.io/packages/LSP) package.
 - A Dart syntax. Try [Dartlight](https://packagecontrol.io/packages/Dartlight).
-- **Either** a Flutter SDK, **or** a Dart SDK.
+- A Flutter SDK or a Dart SDK.
 
 The language server is bundled inside the SDK. This package will attempt to utilize that fact. For this to work you must
 have `FLUTTER_ROOT` defined in your environment variables or `DART_SDK` defined in your environment variables. You can
