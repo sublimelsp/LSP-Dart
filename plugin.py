@@ -37,7 +37,7 @@ def which_realpath(exe: str) -> Optional[str]:
 
 
 def flutter_root_to_dart_sdk(flutter_root: str) -> str:
-    return join(flutter_root, "cache", "dart-sdk")
+    return join(flutter_root, "bin", "cache", "dart-sdk")
 
 
 class Dart(AbstractPlugin):
