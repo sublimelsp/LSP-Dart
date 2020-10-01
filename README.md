@@ -3,6 +3,7 @@
 This is a helper package that automatically starts the [Dart Analysis Server](https://github.com/dart-lang/sdk/blob/master/pkg/analysis_server/tool/lsp_spec/README.md) for you.
 
 To use this package, you must have:
+
 - The [LSP](https://packagecontrol.io/packages/LSP) package.
 - A Dart syntax. Try [Dartlight](https://packagecontrol.io/packages/Dartlight).
 - A Flutter SDK or a Dart SDK.
