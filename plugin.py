@@ -18,6 +18,18 @@ from os.path import realpath
 import sublime
 import shutil
 
+closing_labels = "phantomClosinglabels"
+
+def build_label(view, label):
+    html_template = "<div style='color: {foreground};font-size: 0.99rem'>// {text}</div>"
+    try:
+        style = view.style_for_scope('comment.line')
+        foreground = style['foreground']
+    except:
+        foreground = 'color(var(--foreground) blend(var(--background) 30%))'
+    return html_template.format(
+            foreground=foreground,
+            text=label)
 
 def getenv(configuration: ClientConfig, key: str) -> Optional[str]:
     value = configuration.env.get(key)
@@ -112,10 +124,33 @@ class Dart(AbstractPlugin):
 
         sublime.set_timeout_async(run)
 
-    def m_dart_textDocument_publishClosingLabels(self, params: Any) -> None:
-        # TODO: Implement me.
-        pass
 
+
+    def apply_closing_labels(self, view, labels):
+        for label in labels:
+            final_character_position = label["range"]["end"]
+            if final_character_position["character"] < 1:
+                return
+            row = label["range"]["end"]["line"]
+            point = view.line(view.text_point(row, 0)).end()
+            view.add_phantom(closing_labels,
+                                sublime.Region(point, point+1),
+                                build_label(view, label["label"]),
+                                sublime.LAYOUT_INLINE)
+
+
+    def m_dart_textDocument_publishClosingLabels(self, params: Any) -> None:
+        session = self.weaksession()
+        if not session:
+            return
+        for sv in session.session_views_async():
+            if sv.view.is_valid():
+                if sv.view.file_name() not in params["uri"]:
+                    return
+                sv.view.erase_phantoms(closing_labels)
+                if session.config.init_options.get("closingLabels"):
+                    self.apply_closing_labels(sv.view, reversed(params["labels"]))
+                
     def m_dart_textDocument_publishOutline(self, params: Any) -> None:
         # TODO: Implement me.
         pass
