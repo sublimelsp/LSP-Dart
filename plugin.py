@@ -18,7 +18,7 @@ from os.path import realpath
 import sublime
 import shutil
 
-def build_label(view, label):
+def build_label(view: sublime.View, label: str) -> str:
     html_template = "<div style='color: {foreground}'>// {text}</div>"
     try:
         style = view.style_for_scope('comment.line')
@@ -124,9 +124,7 @@ class Dart(AbstractPlugin):
 
         sublime.set_timeout_async(run)
 
-
-
-    def closing_labels(self, view, labels):
+    def closing_labels(self, view: sublime.View, labels: List[Any]) -> Optional[List[sublime.Phantom]]:
         phantoms = []
         for label in labels:
             final_character_position = label["range"]["end"]
@@ -141,7 +139,6 @@ class Dart(AbstractPlugin):
                 sublime.LAYOUT_INLINE))
         return phantoms
 
-
     def m_dart_textDocument_publishClosingLabels(self, params: Any) -> None:
         session = self.weaksession()
         if not session:
@@ -155,7 +152,9 @@ class Dart(AbstractPlugin):
             except AttributeError:
                 phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
                 setattr(sv, "_lsp_dart_labels", phantom_set)
-            phantom_set.update(self.closing_labels(sv.view, reversed(params["labels"])))
+            closing_labels = self.closing_labels(sv.view, reversed(params["labels"]))
+            if closing_labels:
+                phantom_set.update(closing_labels)
  
     def m_dart_textDocument_publishOutline(self, params: Any) -> None:
         # TODO: Implement me.
