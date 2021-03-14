@@ -1,9 +1,5 @@
 {
-	"languages": [
-		{
-			"languageId": "dart"
-		}
-	],
+	"selector": "source.dart",
 	"env": {
 		// The path to the root of your Flutter SDK.
 		// "FLUTTER_ROOT": "...",
@@ -18,14 +14,32 @@
 		// `which dart`, in that order.
 	},
 	"initializationOptions": {
+		// When set to true, analysis will only be performed for projects that
+		// have open files rather than the root workspace folder.
 		"onlyAnalyzeProjectsWithOpenFiles": false,
+		// When set to false, completion will not include synbols that are not
+		// already imported into the current file.
 		"suggestFromUnimportedLibraries": true,
+		// When set to true, render closing labels.
 		"closingLabels": false,
+		// Not implemented
 		"outline": false,
+		// Not implemented
 		"flutterOutline": false
 	},
 	"settings": {
+		// An array of paths (absolute or relative to each workspace folder)
+		// that should be excluded from analysis.
+		"dart.analysisExcludedFolders": [],
+		// When set to false, prevents registration (or unregisters) the SDK
+		// formatter. When set to true or not supplied, will register/reregister
+		// the SDK formatter.
 		"dart.enableSdkFormatter": true,
-		"dart.lineLength": 80
+		// The number of characters the formatter should wrap code at.
+		"dart.lineLength": 80,
+		// Completes functions/methods with their required parameters.
+		"dart.completeFunctionCalls": false,
+		// Whether to generate diagnostics for TODO comments.
+		"dart.showTodos": false
 	}
 }
