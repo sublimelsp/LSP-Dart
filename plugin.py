@@ -18,8 +18,6 @@ from os.path import realpath
 import sublime
 import shutil
 
-closing_labels = "phantomClosinglabels"
-
 def build_label(view, label):
     html_template = "<div style='color: {foreground}'>// {text}</div>"
     try:
