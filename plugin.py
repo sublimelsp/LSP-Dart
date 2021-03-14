@@ -18,6 +18,16 @@ from os.path import realpath
 import sublime
 import shutil
 
+def build_label(view: sublime.View, label: str) -> str:
+    html_template = "<div style='color: {foreground}'>// {text}</div>"
+    try:
+        style = view.style_for_scope('comment.line')
+        foreground = style['foreground']
+    except:
+        foreground = 'color(var(--foreground) blend(var(--background) 30%))'
+    return html_template.format(
+            foreground=foreground,
+            text=label)
 
 def getenv(configuration: ClientConfig, key: str) -> Optional[str]:
     value = configuration.env.get(key)
@@ -41,6 +51,8 @@ def flutter_root_to_dart_sdk(flutter_root: str) -> str:
 
 
 class Dart(AbstractPlugin):
+    phantom_key = "flutter_closing_labels"
+
     @classmethod
     def name(cls) -> str:
         return "Dart"
@@ -112,9 +124,36 @@ class Dart(AbstractPlugin):
 
         sublime.set_timeout_async(run)
 
+    def closing_labels(self, view: sublime.View, labels: List[Any]) -> Optional[List[sublime.Phantom]]:
+        phantoms = []
+        for label in labels:
+            final_character_position = label["range"]["end"]
+            if final_character_position["character"] < 1:
+                return
+            row = label["range"]["end"]["line"]
+            point = view.line(view.text_point(row, 0)).end()
+            region = sublime.Region(point, point+1)
+            phantoms.append(sublime.Phantom(
+                region,
+                build_label(view, label["label"]),
+                sublime.LAYOUT_INLINE))
+        return phantoms
+
     def m_dart_textDocument_publishClosingLabels(self, params: Any) -> None:
-        # TODO: Implement me.
-        pass
+        session = self.weaksession()
+        if not session:
+            return
+        sb = session.get_session_buffer_for_uri_async(params["uri"])
+        if not sb:
+            return
+        for sv in sb.session_views:
+            try:
+                phantom_set = getattr(sv, "_lsp_dart_labels")
+            except AttributeError:
+                phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
+                setattr(sv, "_lsp_dart_labels", phantom_set)
+            closing_labels = self.closing_labels(sv.view, reversed(params["labels"]))
+            phantom_set.update(closing_labels or [])
 
     def m_dart_textDocument_publishOutline(self, params: Any) -> None:
         # TODO: Implement me.
