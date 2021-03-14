@@ -21,7 +21,7 @@ import shutil
 closing_labels = "phantomClosinglabels"
 
 def build_label(view, label):
-    html_template = "<div style='color: {foreground};font-size: 0.99rem'>// {text}</div>"
+    html_template = "<div style='color: {foreground}'>// {text}</div>"
     try:
         style = view.style_for_scope('comment.line')
         foreground = style['foreground']
@@ -53,6 +53,8 @@ def flutter_root_to_dart_sdk(flutter_root: str) -> str:
 
 
 class Dart(AbstractPlugin):
+    phantom_key = "flutter_closing_labels"
+
     @classmethod
     def name(cls) -> str:
         return "Dart"
@@ -126,31 +128,37 @@ class Dart(AbstractPlugin):
 
 
 
-    def apply_closing_labels(self, view, labels):
+    def closing_labels(self, view, labels):
+        phantoms = []
         for label in labels:
             final_character_position = label["range"]["end"]
             if final_character_position["character"] < 1:
                 return
             row = label["range"]["end"]["line"]
             point = view.line(view.text_point(row, 0)).end()
-            view.add_phantom(closing_labels,
-                                sublime.Region(point, point+1),
-                                build_label(view, label["label"]),
-                                sublime.LAYOUT_INLINE)
+            region = sublime.Region(point, point+1)
+            phantoms.append(sublime.Phantom(
+                region,
+                build_label(view, label["label"]),
+                sublime.LAYOUT_INLINE))
+        return phantoms
 
 
     def m_dart_textDocument_publishClosingLabels(self, params: Any) -> None:
         session = self.weaksession()
         if not session:
             return
-        for sv in session.session_views_async():
-            if sv.view.is_valid():
-                if sv.view.file_name() not in params["uri"]:
-                    return
-                sv.view.erase_phantoms(closing_labels)
-                if session.config.init_options.get("closingLabels"):
-                    self.apply_closing_labels(sv.view, reversed(params["labels"]))
-                
+        sb = session.get_session_buffer_for_uri_async(params["uri"])
+        if not sb:
+            return
+        for sv in sb.session_views:
+            try:
+                phantom_set = getattr(sv, "_lsp_dart_labels")
+            except AttributeError:
+                phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
+                setattr(sv, "_lsp_dart_labels", phantom_set)
+            phantom_set.update(self.closing_labels(sv.view, reversed(params["labels"])))
+ 
     def m_dart_textDocument_publishOutline(self, params: Any) -> None:
         # TODO: Implement me.
         pass
