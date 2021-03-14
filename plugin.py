@@ -153,9 +153,8 @@ class Dart(AbstractPlugin):
                 phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
                 setattr(sv, "_lsp_dart_labels", phantom_set)
             closing_labels = self.closing_labels(sv.view, reversed(params["labels"]))
-            if closing_labels:
-                phantom_set.update(closing_labels)
- 
+            phantom_set.update(closing_labels or [])
+
     def m_dart_textDocument_publishOutline(self, params: Any) -> None:
         # TODO: Implement me.
         pass
