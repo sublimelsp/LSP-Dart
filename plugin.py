@@ -1,7 +1,9 @@
 from LSP.plugin import __version__
 from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
+from LSP.plugin import register_plugin
 from LSP.plugin import Request
+from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
 from LSP.plugin.core.typing import Any, List, Optional, Tuple
 
@@ -48,6 +50,14 @@ def which_realpath(exe: str) -> Optional[str]:
 
 def flutter_root_to_dart_sdk(flutter_root: str) -> str:
     return join(flutter_root, "bin", "cache", "dart-sdk")
+
+
+def plugin_loaded() -> None:
+    register_plugin(Dart)
+
+
+def plugin_unloaded() -> None:
+    unregister_plugin(Dart)
 
 
 class Dart(AbstractPlugin):
