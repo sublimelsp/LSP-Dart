@@ -1,0 +1,110 @@
+{
+  "contributions": {
+    "settings": [
+      {
+        "file_patterns": [
+          "/LSP-Dart.sublime-settings"
+        ],
+        "schema": {
+          "$id": "sublime://settings/LSP-Dart",
+          "allOf": [
+            {
+              "$ref": "sublime://settings/LSP-plugin-base"
+            },
+            {
+              "$ref": "sublime://settings/LSP-Dart#/definitions/PluginConfig"
+            }
+          ],
+          "definitions": {
+            "PluginConfig": {
+              "properties": {
+                "initializationOptions": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "onlyAnalyzeProjectsWithOpenFiles": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "When set to true, analysis will only be performed for projects that have open files rather than the root workspace folder."
+                    },
+                    "suggestFromUnimportedLibraries": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "When set to false, completion will not include synbols that are not already imported into the current file."
+                    },
+                    "closingLabels": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "When set to true, render closing labels."
+                    },
+                    "outline": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Not implemented"
+                    },
+                    "flutterOutline": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Not implemented"
+                    }
+                  }
+                },
+                "settings": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "properties": {
+                    "dart.analysisExcludedFolders": {
+                      "type": "array",
+                      "default": [],
+                      "description": "An array of paths (absolute or relative to each workspace folder) that should be excluded from analysis."
+                    },
+                    "dart.enableSdkFormatter": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "When set to false, prevents registration (or unregisters) the SDK formatter. When set to true or not supplied, will register/reregister the SDK formatter."
+                    },
+                    "dart.lineLength": {
+                      "type": "integer",
+                      "default": 80,
+                      "description": "The number of characters the formatter should wrap code at."
+                    },
+                    "dart.completeFunctionCalls": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Completes functions/methods with their required parameters."
+                    },
+                    "dart.showTodos": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Whether to generate diagnostics for TODO comments."
+                    },
+                  },
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "file_patterns": [
+          "/*.sublime-project"
+        ],
+        "schema": {
+          "properties": {
+            "settings": {
+              "properties": {
+                "LSP": {
+                  "properties": {
+                    "Dart": {
+                      "$ref": "sublime://settings/LSP-Dart#/definitions/PluginConfig"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

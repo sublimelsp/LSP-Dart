@@ -1,24 +1,84 @@
+from __future__ import annotations
+
 from LSP.plugin import __version__
 from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
+from LSP.plugin import LspTextCommand
+from LSP.plugin import notification_handler
 from LSP.plugin import register_plugin
 from LSP.plugin import Request
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
-from LSP.plugin.core.typing import Any, List, Optional, Tuple
-
-# TODO: Move to public API
-from LSP.plugin.core.registry import LspTextCommand
 from LSP.plugin.core.views import location_to_encoded_filename
 from LSP.plugin.core.views import text_document_position_params
-
+from LSP.protocol import Location
+from LSP.protocol import Range
+from LSP.protocol import TextDocumentPositionParams
+from LSP.protocol import URI
 from os import environ
 from os.path import dirname
 from os.path import join
 from os.path import realpath
-
-import sublime
+from typing import final
+from typing import TypedDict
+from typing_extensions import NotRequired
+from typing_extensions import override
 import shutil
+import sublime
+
+
+class PublishClosingLabelsParams(TypedDict):
+    labels: list[Label]
+    uri: URI
+
+
+class Label(TypedDict):
+    label: str
+    range: Range
+
+
+class PublishOutlineParam(TypedDict):
+    outline: Outline
+    uri: URI
+
+
+class Outline(TypedDict):
+    children: list[Outline]
+    codeRange: Range
+    element: Element
+    range: Range
+
+
+class Element(TypedDict):
+    kind: str
+    name: str
+    parameters: NotRequired[str]
+    range: Range
+    returnType: NotRequired[str]
+    typeParameters: NotRequired[str]
+
+
+class PublishFlutterOutlineParam(TypedDict):
+    outline: FlutterOutline
+    uri: URI
+
+
+class FlutterOutline(TypedDict):
+    attributes: NotRequired[list[FlutterOutlineAttribute]]
+    children: list[Outline]
+    className: NotRequired[str]
+    codeRange: Range
+    dartElement: NotRequired[Element]
+    kind: str
+    label: NotRequired[str]
+    range: Range
+    variableName: NotRequired[str]
+
+
+class FlutterOutlineAttribute(TypedDict):
+    name: str
+    label: str
+
 
 def build_label(view: sublime.View, label: str) -> str:
     html_template = "<div style='color: {foreground}'>// {text}</div>"
@@ -31,7 +91,8 @@ def build_label(view: sublime.View, label: str) -> str:
             foreground=foreground,
             text=label)
 
-def getenv(configuration: ClientConfig, key: str) -> Optional[str]:
+
+def getenv(configuration: ClientConfig, key: str) -> str | None:
     value = configuration.env.get(key)
     if value:
         return realpath(value)
@@ -41,9 +102,8 @@ def getenv(configuration: ClientConfig, key: str) -> Optional[str]:
     return None
 
 
-def which_realpath(exe: str) -> Optional[str]:
-    path = shutil.which(exe)
-    if path:
+def which_realpath(exe: str) -> str | None:
+    if path := shutil.which(exe):
         return realpath(path)
     return None
 
@@ -60,22 +120,25 @@ def plugin_unloaded() -> None:
     unregister_plugin(Dart)
 
 
+@final
 class Dart(AbstractPlugin):
     phantom_key = "flutter_closing_labels"
 
     @classmethod
+    @override
     def name(cls) -> str:
         return "Dart"
 
     @classmethod
+    @override
     def can_start(
         cls,
         window: sublime.Window,
         initiating_view: sublime.View,
-        workspace_folders: List[WorkspaceFolder],
+        workspace_folders: list[WorkspaceFolder],
         configuration: ClientConfig,
-    ) -> Optional[str]:
-        sdk_path = None  # type: Optional[str]
+    ) -> str | None:
+        sdk_path: str | None = None
         # 1: Try FLUTTER_ROOT
         flutter_root = getenv(configuration, "FLUTTER_ROOT")
         if flutter_root:
@@ -116,40 +179,25 @@ class Dart(AbstractPlugin):
     def server_snapshot(cls, sdk_path: str) -> str:
         return join(sdk_path, "bin", "snapshots", "analysis_server.dart.snapshot")
 
-    # handle custom notifications
-
-    def m___analyzerStatus(self, params: Any) -> None:
-        def run() -> None:
-            session = self.weaksession()
-            if not session:
-                return
-            analyzing = isinstance(params, dict) and params.get("isAnalyzing")
-            status_key = self.name() + "_analyzing"
-            for sv in session.session_views_async():
-                if sv.view.is_valid():
-                    if analyzing:
-                        sv.view.set_status(status_key, "Analyzing")
-                    else:
-                        sv.view.erase_status(status_key)
-
-        sublime.set_timeout_async(run)
-
-    def closing_labels(self, view: sublime.View, labels: List[Any]) -> Optional[List[sublime.Phantom]]:
-        phantoms = []
+    def closing_labels(self, view: sublime.View, labels: list[Label]) -> list[sublime.Phantom] | None:
+        phantoms: list[sublime.Phantom] = []
         for label in labels:
             final_character_position = label["range"]["end"]
             if final_character_position["character"] < 1:
-                return
+                return None
             row = label["range"]["end"]["line"]
             point = view.line(view.text_point(row, 0)).end()
-            region = sublime.Region(point, point+1)
+            region = sublime.Region(point, point + 1)
             phantoms.append(sublime.Phantom(
                 region,
                 build_label(view, label["label"]),
                 sublime.LAYOUT_INLINE))
         return phantoms
 
-    def m_dart_textDocument_publishClosingLabels(self, params: Any) -> None:
+    # handle custom notifications
+
+    @notification_handler("dart/textDocument/publishClosingLabels")
+    def on_dart_text_document_publish_closing_labels(self, params: PublishClosingLabelsParams) -> None:
         session = self.weaksession()
         if not session:
             return
@@ -158,35 +206,37 @@ class Dart(AbstractPlugin):
             return
         for sv in sb.session_views:
             try:
-                phantom_set = getattr(sv, "_lsp_dart_labels")
+                phantom_set = sv._lsp_dart_labels
             except AttributeError:
                 phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
-                setattr(sv, "_lsp_dart_labels", phantom_set)
-            closing_labels = self.closing_labels(sv.view, reversed(params["labels"]))
+                sv._lsp_dart_labels = phantom_set
+            closing_labels = self.closing_labels(sv.view, list(reversed(params["labels"])))
             phantom_set.update(closing_labels or [])
 
-    def m_dart_textDocument_publishOutline(self, params: Any) -> None:
+    @notification_handler("dart/textDocument/publishOutline")
+    def on_dart_text_document_publish_outline(self, params: PublishOutlineParam) -> None:
         # TODO: Implement me.
         pass
 
-    def m_dart_textDocument_publishFlutterOutline(self, params: Any) -> None:
+    @notification_handler("dart/textDocument/publishFlutterOutline")
+    def on_dart_text_document_publish_flutter_outline(self, params: PublishFlutterOutlineParam) -> None:
         # TODO: Implement me.
         pass
 
 
+@final
 class LspDartReanalyzeCommand(LspTextCommand):
     session_name = Dart.name()
 
+    @override
     def run(self, _: sublime.Edit) -> None:
         session = self.session_by_name(self.session_name)
         if not session:
             return
-        req = Request("dart/reanalyze")
-        session.send_request(
-            req, lambda r: sublime.set_timeout(lambda: self.on_result(r))
-        )
+        req: Request[None, None] = Request("dart/reanalyze")
+        session.send_request(req, self.on_result)
 
-    def on_result(self, params: Any) -> None:
+    def on_result(self, params: None) -> None:
         if not self.view.is_valid():
             return
         window = self.view.window()
@@ -195,23 +245,26 @@ class LspDartReanalyzeCommand(LspTextCommand):
         window.status_message("Re-analyzed")
 
 
+@final
 class LspDartSuperCommand(LspTextCommand):
     session_name = Dart.name()
 
+    @override
     def run(self, _: sublime.Edit) -> None:
         session = self.session_by_name(self.session_name)
         if not session:
             return
         params = text_document_position_params(self.view, self.view.sel()[0].b)
-        req = Request("dart/textDocument/super", params)
+        req: Request[TextDocumentPositionParams, Location | None] = Request("dart/textDocument/super", params)
         session.send_request(req, self.on_result)
 
-    def on_result(self, params: Any) -> None:
+    def on_result(self, params: Location | None) -> None:
         window = self.view.window()
         if not window:
             return
         if not isinstance(params, dict):
-            return sublime.error_message("No superclass found")
+            sublime.error_message("No superclass found")
+            return
         window.open_file(
             location_to_encoded_filename(params), flags=sublime.ENCODED_POSITION
         )

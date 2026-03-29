@@ -1,5 +1,4 @@
 {
-	"selector": "source.dart",
 	"env": {
 		// The path to the root of your Flutter SDK.
 		// "FLUTTER_ROOT": "...",
@@ -13,7 +12,7 @@
 		// in the order specified. It also attempts `which flutter` and
 		// `which dart`, in that order.
 	},
-	"initializationOptions": {
+	"initialization_options": {
 		// When set to true, analysis will only be performed for projects that
 		// have open files rather than the root workspace folder.
 		"onlyAnalyzeProjectsWithOpenFiles": false,
@@ -41,5 +40,6 @@
 		"dart.completeFunctionCalls": false,
 		// Whether to generate diagnostics for TODO comments.
 		"dart.showTodos": false
-	}
+	},
+	"selector": "source.dart",
 }
