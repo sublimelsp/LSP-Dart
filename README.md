@@ -6,18 +6,9 @@ To use this package, you must have:
 
 - The [LSP](https://packagecontrol.io/packages/LSP) package.
 - A Dart syntax. Try [Dartlight](https://packagecontrol.io/packages/Dartlight).
-- A Flutter SDK or a Dart SDK.
+- A Flutter SDK or a Dart SDK. See https://dart.dev/get-dart.
 
-The language server is bundled inside the SDK. This package will attempt to utilize that fact. For this to work you must
-have `FLUTTER_ROOT` defined in your environment variables or `DART_SDK` defined in your environment variables. You can
-also define one of them in the `"env"` key of LSP-Dart.sublime-settings so that you can have different SDKs active per
-*.sublime-project*. Run the command
-
-```
-Preferences: LSP-Dart Settings
-```
-
-to set up the environment variables.
+The language server is bundled inside the SDK. This package will attempt to utilize that fact. If it won't be able to find it automaticaly then you will have to define `FLUTTER_ROOT` or `DART_SDK` in your environment variables. You can also define one of them in the `"env"` key of `LSP-Dart.sublime-settings` so that you can have different SDKs active per *.sublime-project*. Run the command `Preferences: LSP-Dart Settings` to set up the environment variables.
 
 ## Applicable Selectors
 
@@ -29,23 +20,11 @@ This helper package doesn't install any binaries.
 
 ## Server-specific commands
 
-You can run
-
-```
-LSP-Dart: Goto Super
-```
-
-from the command palette to jump to a super class. The relevant command is `lsp_dart_super` in case you want to bind
-it to a keybinding.
+You can run `LSP-Dart: Goto Super` from the _command palette_ to jump to a super class. The relevant command is `lsp_dart_super` in case you want to bind it to a keybinding.
 
 ## Quirks
 
-The language server is capable of "signature help", but you have to trigger it manually. Run the command
-
-```
-Preferences: LSP Keybindings
-```
-to find out what the keybinding is to manually invoke "signature help".
+The language server is capable of "signature help", but you have to trigger it manually. Run the command `Preferences: LSP Keybindings` to find out what the keybinding is to manually invoke "signature help".
 
 ## Capabilities
 
