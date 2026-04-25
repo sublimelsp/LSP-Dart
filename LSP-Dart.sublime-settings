@@ -16,7 +16,7 @@
 		// When set to true, analysis will only be performed for projects that
 		// have open files rather than the root workspace folder.
 		"onlyAnalyzeProjectsWithOpenFiles": false,
-		// When set to false, completion will not include synbols that are not
+		// When set to false, completion will not include symbols that are not
 		// already imported into the current file.
 		"suggestFromUnimportedLibraries": true,
 		// When set to true, render closing labels.

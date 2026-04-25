@@ -30,7 +30,7 @@
                     "suggestFromUnimportedLibraries": {
                       "type": "boolean",
                       "default": true,
-                      "description": "When set to false, completion will not include synbols that are not already imported into the current file."
+                      "description": "When set to false, completion will not include symbols that are not already imported into the current file."
                     },
                     "closingLabels": {
                       "type": "boolean",
