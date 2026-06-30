@@ -85,7 +85,7 @@ def build_label(view: sublime.View, label: str) -> str:
     try:
         style = view.style_for_scope('comment.line')
         foreground = style['foreground']
-    except:
+    except TypeError:
         foreground = 'color(var(--foreground) blend(var(--background) 30%))'
     return html_template.format(
             foreground=foreground,
@@ -198,20 +198,15 @@ class Dart(AbstractPlugin):
 
     @notification_handler("dart/textDocument/publishClosingLabels")
     def on_dart_text_document_publish_closing_labels(self, params: PublishClosingLabelsParams) -> None:
-        session = self.weaksession()
-        if not session:
-            return
-        sb = session.get_session_buffer_for_uri_async(params["uri"])
-        if not sb:
-            return
-        for sv in sb.session_views:
-            try:
-                phantom_set = sv._lsp_dart_labels
-            except AttributeError:
-                phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
-                sv._lsp_dart_labels = phantom_set
-            closing_labels = self.closing_labels(sv.view, list(reversed(params["labels"])))
-            phantom_set.update(closing_labels or [])
+        if (session := self.weaksession()) and (sb := session.get_session_buffer_for_uri_async(params["uri"])):
+            for sv in sb.session_views:
+                try:
+                    phantom_set = getattr(sv, '_lsp_dart_labels')
+                except AttributeError:
+                    phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
+                    setattr(sv, '_lsp_dart_labels', phantom_set)
+                closing_labels = self.closing_labels(sv.view, list(reversed(params["labels"])))
+                phantom_set.update(closing_labels or [])
 
     @notification_handler("dart/textDocument/publishOutline")
     def on_dart_text_document_publish_outline(self, params: PublishOutlineParam) -> None:
