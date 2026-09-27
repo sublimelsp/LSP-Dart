@@ -7,10 +7,10 @@ from LSP.plugin import LspTextCommand
 from LSP.plugin import notification_handler
 from LSP.plugin import register_plugin
 from LSP.plugin import Request
+from LSP.plugin import text_document_position_params
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
 from LSP.plugin.core.views import location_to_encoded_filename
-from LSP.plugin.core.views import text_document_position_params
 from LSP.protocol import Location
 from LSP.protocol import Range
 from LSP.protocol import TextDocumentPositionParams
