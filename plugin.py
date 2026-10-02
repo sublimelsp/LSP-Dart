@@ -151,7 +151,7 @@ class Dart(AbstractPlugin):
                 sdk_path = flutter_root_to_dart_sdk(flutter_root)
         # 3: Try DART_SDK
         if not sdk_path:
-            sdk_path = configuration.env.get("DART_SDK")
+            sdk_path = getenv(configuration, "DART_SDK")
         # 4: Try `which dart`
         if not sdk_path:
             dart_bin = which_realpath("dart")
