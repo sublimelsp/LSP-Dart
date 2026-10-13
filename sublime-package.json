@@ -95,7 +95,7 @@
               "properties": {
                 "LSP": {
                   "properties": {
-                    "Dart": {
+                    "LSP-Dart": {
                       "$ref": "sublime://settings/LSP-Dart#/definitions/PluginConfig"
                     }
                   }

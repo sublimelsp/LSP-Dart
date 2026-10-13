@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from LSP.plugin import __version__
-from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
+from LSP.plugin import LspPlugin
 from LSP.plugin import LspTextCommand
 from LSP.plugin import notification_handler
-from LSP.plugin import register_plugin
+from LSP.plugin import OnPreStartContext
+from LSP.plugin import PluginStartError
 from LSP.plugin import Request
 from LSP.plugin import text_document_position_params
-from LSP.plugin import unregister_plugin
-from LSP.plugin import WorkspaceFolder
 from LSP.plugin.core.views import location_to_encoded_filename
 from LSP.protocol import Location
 from LSP.protocol import Range
@@ -113,31 +112,21 @@ def flutter_root_to_dart_sdk(flutter_root: str) -> str:
 
 
 def plugin_loaded() -> None:
-    register_plugin(Dart)
+    Dart.register()
 
 
 def plugin_unloaded() -> None:
-    unregister_plugin(Dart)
+    Dart.unregister()
 
 
 @final
-class Dart(AbstractPlugin):
+class Dart(LspPlugin):
     phantom_key = "flutter_closing_labels"
 
     @classmethod
     @override
-    def name(cls) -> str:
-        return "Dart"
-
-    @classmethod
-    @override
-    def can_start(
-        cls,
-        window: sublime.Window,
-        initiating_view: sublime.View,
-        workspace_folders: list[WorkspaceFolder],
-        configuration: ClientConfig,
-    ) -> str | None:
+    def on_pre_start_async(cls, context: OnPreStartContext) -> None:
+        configuration = context.configuration
         sdk_path: str | None = None
         # 1: Try FLUTTER_ROOT
         flutter_root = getenv(configuration, "FLUTTER_ROOT")
@@ -159,7 +148,7 @@ class Dart(AbstractPlugin):
                 sdk_path = dirname(dirname(dart_bin))
         # 5: Exhausted all options
         if not sdk_path:
-            return 'missing "DART_SDK" environment variable'
+            raise PluginStartError('missing "DART_SDK" environment variable')
         configuration.command = [
             cls.dart_exe(sdk_path),
             cls.server_snapshot(sdk_path),
@@ -169,7 +158,6 @@ class Dart(AbstractPlugin):
             "--client-version",
             ".".join(map(str, __version__)),
         ]
-        return None
 
     @classmethod
     def dart_exe(cls, sdk_path: str) -> str:
@@ -201,10 +189,10 @@ class Dart(AbstractPlugin):
         if (session := self.weaksession()) and (sb := session.get_session_buffer_for_uri_async(params["uri"])):
             for sv in sb.session_views:
                 try:
-                    phantom_set = getattr(sv, '_lsp_dart_labels')
+                    phantom_set = sv._lsp_dart_labels
                 except AttributeError:
                     phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
-                    setattr(sv, '_lsp_dart_labels', phantom_set)
+                    sv._lsp_dart_labels = phantom_set
                 closing_labels = self.closing_labels(sv.view, list(reversed(params["labels"])))
                 phantom_set.update(closing_labels or [])
 
@@ -221,7 +209,6 @@ class Dart(AbstractPlugin):
 
 @final
 class LspDartReanalyzeCommand(LspTextCommand):
-    session_name = Dart.name()
 
     @override
     def run(self, _: sublime.Edit) -> None:
@@ -242,7 +229,6 @@ class LspDartReanalyzeCommand(LspTextCommand):
 
 @final
 class LspDartSuperCommand(LspTextCommand):
-    session_name = Dart.name()
 
     @override
     def run(self, _: sublime.Edit) -> None:
