@@ -1,7 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/sublimelsp/lsp_smoke_test/v1/smoke.schema.json
 file: lib/main.dart
-# The session name until the package is migrated to LspPlugin.
-server: Dart
 expected_diagnostics:
   source: dart
   code: undefined_identifier
