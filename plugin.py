@@ -189,10 +189,10 @@ class Dart(LspPlugin):
         if (session := self.weaksession()) and (sb := session.get_session_buffer_for_uri_async(params["uri"])):
             for sv in sb.session_views:
                 try:
-                    phantom_set = sv._lsp_dart_labels
+                    phantom_set = getattr(sv, '_lsp_dart_labels')  # noqa: B009
                 except AttributeError:
                     phantom_set = sublime.PhantomSet(sv.view, self.phantom_key)
-                    sv._lsp_dart_labels = phantom_set
+                    setattr(sv, '_lsp_dart_labels', phantom_set)  # noqa: B010
                 closing_labels = self.closing_labels(sv.view, list(reversed(params["labels"])))
                 phantom_set.update(closing_labels or [])
 
