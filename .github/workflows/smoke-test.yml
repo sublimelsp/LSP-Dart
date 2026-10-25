@@ -24,7 +24,7 @@ jobs:
       - uses: sublimelsp/lsp_smoke_test@v1
         with:
           # Provides the Dart syntax that the server is enabled for.
-          extra-packages: elMuso/Dartlight
+          extra-packages: Dartlight
 
   # A single check whose name doesn't depend on the os matrix, for rulesets to require. It runs even when the workflow
   # is cancelled: a skipped job counts as passing for a required check.
